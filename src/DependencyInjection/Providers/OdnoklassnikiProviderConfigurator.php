@@ -17,7 +17,13 @@ class OdnoklassnikiProviderConfigurator implements ProviderConfiguratorInterface
 {
     public function buildConfiguration(NodeBuilder $node)
     {
-        // no custom options
+        $node
+            ->scalarNode('client_public')
+            ->isRequired()
+            ->info('The application public key as provided by Odnoklassniki')
+            ->example('client_public: \'%env(OAUTH_OK_KEY)%\'')
+            ->end()
+        ;
     }
 
     public function getProviderClass(array $config)
@@ -30,6 +36,7 @@ class OdnoklassnikiProviderConfigurator implements ProviderConfiguratorInterface
         return [
             'clientId' => $config['client_id'],
             'clientSecret' => $config['client_secret'],
+            'clientPublic' => $config['client_public'],
         ];
     }
 
