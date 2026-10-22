@@ -1,5 +1,7 @@
 # OAuth / Social Integration for Symfony: KnpUOAuth2ClientBundle
 
+[![CI](https://github.com/knpuniversity/oauth2-client-bundle/actions/workflows/ci.yaml/badge.svg)](https://github.com/knpuniversity/oauth2-client-bundle/actions/workflows/ci.yaml)
+
 Easily integrate with an OAuth2 server (e.g. Facebook, GitHub) for:
 
 * "Social" authentication / login
@@ -85,12 +87,14 @@ via Composer:
 | [Instagram](https://github.com/thephpleague/oauth2-instagram)         | composer require league/oauth2-instagram           |
 | [Jira](https://github.com/mrjoops/oauth2-jira)                        | composer require mrjoops/oauth2-jira               |
 | [Keycloak](https://github.com/stevenmaguire/oauth2-keycloak)          | composer require stevenmaguire/oauth2-keycloak     |
+| [KeycloakPkce](https://github.com/stevenmaguire/oauth2-keycloak)      | composer require stevenmaguire/oauth2-keycloak     |
 | [LinkedIn](https://github.com/thephpleague/oauth2-linkedin)           | composer require league/oauth2-linkedin            |
 | [MailRu](https://github.com/rakeev/oauth2-mailru)                     | composer require aego/oauth2-mailru                |
 | [Microsoft](https://github.com/stevenmaguire/oauth2-microsoft)        | composer require stevenmaguire/oauth2-microsoft    |
 | [Mollie](https://github.com/mollie/oauth2-mollie-php)                 | composer require mollie/oauth2-mollie-php          |
 | [Odnoklassniki](https://github.com/rakeev/oauth2-odnoklassniki)       | composer require aego/oauth2-odnoklassniki         |
 | [Okta](https://github.com/foxworth42/oauth2-okta)                     | composer require foxworth42/oauth2-okta            |
+| [Passage](https://github.com/malteschlueter/oauth2-passage)           | composer require malteschlueter/oauth2-passage     |
 | [Paypal](https://github.com/stevenmaguire/oauth2-paypal)              | composer require stevenmaguire/oauth2-paypal       |
 | [PSN](https://github.com/larabros/oauth2-psn)                         | composer require larabros/oauth2-psn               |
 | [Salesforce](https://github.com/stevenmaguire/oauth2-salesforce)      | composer require stevenmaguire/oauth2-salesforce   |
@@ -141,7 +145,7 @@ knpu_oauth2_client:
             graph_api_version: v2.12
 ```
 
-Notice the two `'%env(var)%'`calls? Add these anywhere in your `.env` and `.env.dist` files.
+Notice the two `'%env(var)%'`calls? Add these in your `.env` file, or to the [vault](https://symfony.com/doc/current/configuration/secrets.html). 
 These are the credentials for the OAuth provider. For Facebook, you'll get these by registering
 your app on [developers.facebook.com](https://developers.facebook.com/apps/):
 
@@ -187,8 +191,6 @@ class FacebookController extends AbstractController
      */
     public function connectAction(ClientRegistry $clientRegistry)
     {
-        // on Symfony 3.3 or lower, $clientRegistry = $this->get('knpu.oauth2.registry');
-
         // will redirect to Facebook!
         return $clientRegistry
             ->getClient('facebook_main') // key used in config/packages/knpu_oauth2_client.yaml
@@ -285,7 +287,7 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
 
-class MyFacebookAuthenticator extends OAuth2Authenticator implements AuthenticationEntrypointInterface
+class MyFacebookAuthenticator extends OAuth2Authenticator implements AuthenticationEntryPointInterface
 {
     private $clientRegistry;
     private $entityManager;
@@ -371,21 +373,27 @@ class MyFacebookAuthenticator extends OAuth2Authenticator implements Authenticat
 
 ### Step 2) Configuring the Security
 
-Next, enable the new authenticator manager and then register your authenticator
+Next, register your authenticator
 in `security.yaml` under the `custom_authenticators` section:
 
 ```diff
 # app/config/packages/security.yaml
 security:
-    # ...
-+   enable_authenticator_manager: true
-  
+    # ...  
     firewalls:
         # ...
         main:
         # ...
 +           custom_authenticators:
 +               - App\Security\MyFacebookAuthenticator
+```
+> **IMPORTANT** If you have Symfony 6.4 or lower - you will also need to enable the new authenticator manager:
+
+```diff
+# app/config/packages/security.yaml
+security:
+    # ...  
++   enable_authenticator_manager: true
 ```
 
 > **CAUTION** You *can* also inject the individual client (e.g. `FacebookClient`)
@@ -1200,7 +1208,34 @@ knpu_oauth2_client:
             auth_server_url: null
             # Keycloak realm
             realm: null
-            # Optional: Encryption algorith, i.e. RS256
+            # Optional: Encryption algorithm, i.e. RS256
+            # encryption_algorithm: null
+            # Optional: Encryption key path, i.e. ../key.pem
+            # encryption_key_path: null
+            # Optional: Encryption key, i.e. contents of key or certificate
+            # encryption_key: null
+            # Optional: The keycloak version to run against
+            # version: '20.0.1'
+            # whether to check OAuth2 "state": defaults to true
+            # use_state: true
+
+        # will create service: "knpu.oauth2.client.keycloak_pkce"
+        # an instance of: KnpU\OAuth2ClientBundle\Client\Provider\Pkce\KeycloakPkceClient
+        # composer require stevenmaguire/oauth2-keycloak
+        keycloak_pkce:
+            # must be "keycloak_pkce" - it activates that type!
+            type: keycloak_pkce
+            # add and set these environment variables in your .env files
+            client_id: '%env(OAUTH_KEYCLOAK_PKCE_CLIENT_ID)%'
+            client_secret: '%env(OAUTH_KEYCLOAK_PKCE_CLIENT_SECRET)%'
+            # a route name you'll create
+            redirect_route: connect_keycloak_pkce_check
+            redirect_params: {}
+            # Keycloak server URL
+            auth_server_url: null
+            # Keycloak realm
+            realm: null
+            # Optional: Encryption algorithm, i.e. RS256
             # encryption_algorithm: null
             # Optional: Encryption key path, i.e. ../key.pem
             # encryption_key_path: null
@@ -1310,6 +1345,23 @@ knpu_oauth2_client:
             redirect_params: {}
             # Issuer URI from Okta
             issuer: https://mycompany.okta.com/oauth2/default
+            # whether to check OAuth2 "state": defaults to true
+            # use_state: true
+
+        # will create service: "knpu.oauth2.client.passage"
+        # an instance of: KnpU\OAuth2ClientBundle\Client\Provider\PassageClient
+        # composer require malteschlueter/oauth2-passage
+        passage:
+            # must be "passage" - it activates that type!
+            type: passage
+            # add and set these environment variables in your .env files
+            client_id: '%env(OAUTH_PASSAGE_CLIENT_ID)%'
+            client_secret: '%env(OAUTH_PASSAGE_CLIENT_SECRET)%'
+            # a route name you'll create
+            redirect_route: connect_passage_check
+            redirect_params: {}
+            # Passage sub domain. For example, from passage url "https://example.withpassage.com" only "example" is required.
+            sub_domain: 'example'
             # whether to check OAuth2 "state": defaults to true
             # use_state: true
 

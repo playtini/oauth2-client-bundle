@@ -44,6 +44,7 @@ use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\HeadHunterProviderConf
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\HerokuProviderConfigurator;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\InstagramProviderConfigurator;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\JiraProviderConfigurator;
+use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\KeycloakPkceProviderConfigurator;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\KeycloakProviderConfigurator;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\LinkedInProviderConfigurator;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\MailRuProviderConfigurator;
@@ -51,6 +52,7 @@ use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\MicrosoftProviderConfi
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\MollieProviderConfigurator;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\OdnoklassnikiProviderConfigurator;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\OktaProviderConfigurator;
+use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\PassageProviderConfiguration;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\PaypalProviderConfigurator;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\ProviderConfiguratorInterface;
 use KnpU\OAuth2ClientBundle\DependencyInjection\Providers\ProviderWithoutClientSecretConfiguratorInterface;
@@ -79,9 +81,9 @@ use Symfony\Component\Config\Definition\Processor;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Alias;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Loader\XmlFileLoader;
+use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
-use Symfony\Component\HttpKernel\DependencyInjection\Extension;
 
 class KnpUOAuth2ClientExtension extends Extension
 {
@@ -127,12 +129,14 @@ class KnpUOAuth2ClientExtension extends Extension
         'instagram' => InstagramProviderConfigurator::class,
         'jira' => JiraProviderConfigurator::class,
         'keycloak' => KeycloakProviderConfigurator::class,
+        'keycloak_pkce' => KeycloakPkceProviderConfigurator::class,
         'linkedin' => LinkedInProviderConfigurator::class,
         'mail_ru' => MailRuProviderConfigurator::class,
         'microsoft' => MicrosoftProviderConfigurator::class,
         'mollie' => MollieProviderConfigurator::class,
         'odnoklassniki' => OdnoklassnikiProviderConfigurator::class,
         'okta' => OktaProviderConfigurator::class,
+        'passage' => PassageProviderConfiguration::class,
         'paypal' => PaypalProviderConfigurator::class,
         'psn' => PsnProviderConfigurator::class,
         'salesforce' => SalesforceProviderConfigurator::class,
@@ -174,8 +178,8 @@ class KnpUOAuth2ClientExtension extends Extension
         $configuration = new Configuration();
         $config = $processor->processConfiguration($configuration, $configs);
 
-        $loader = new XmlFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
-        $loader->load('services.xml');
+        $loader = new PhpFileLoader($container, new FileLocator(__DIR__.'/../Resources/config'));
+        $loader->load('services.php');
 
         $httpClient = $config['http_client'];
         $httpClientOptions = $config['http_client_options'];
@@ -185,20 +189,18 @@ class KnpUOAuth2ClientExtension extends Extension
         foreach ($clientConfigurations as $key => $clientConfig) {
             // manually make sure "type" is there
             if (!isset($clientConfig['type'])) {
-                throw new InvalidConfigurationException(sprintf('Your "knpu_oauth2_client.clients.%s" config entry is missing the "type" key.', $key));
+                throw new InvalidConfigurationException(\sprintf('Your "knpu_oauth2_client.clients.%s" config entry is missing the "type" key.', $key));
             }
 
             $type = $clientConfig['type'];
             unset($clientConfig['type']);
             if (!isset(self::$supportedProviderTypes[$type])) {
-                throw new InvalidConfigurationException(sprintf('The "knpu_oauth2_client.clients" config "type" key "%s" is not supported. We support (%s)', $type, implode(', ', array_keys(self::$supportedProviderTypes))));
+                throw new InvalidConfigurationException(\sprintf('The "knpu_oauth2_client.clients" config "type" key "%s" is not supported. We support (%s)', $type, implode(', ', array_keys(self::$supportedProviderTypes))));
             }
 
             // process the configuration
             $tree = new TreeBuilder('knpu_oauth2_client/clients/'.$key);
-            $node = method_exists($tree, 'getRootNode')
-                ? $tree->getRootNode()
-                : $tree->root('knpu_oauth2_client/clients/'.$key);
+            $node = $tree->getRootNode();
 
             $this->buildConfigurationForType($node, $type);
             $processor = new Processor();
@@ -253,12 +255,12 @@ class KnpUOAuth2ClientExtension extends Extension
     {
         if ($this->checkExternalClassExistence && !class_exists($providerClass)) {
             if ('generic' === $providerType) {
-                throw new \LogicException(sprintf('The provider class `%s` must exist in order to use with the "%s" OAuth provider.', $providerClass, $providerType));
+                throw new \LogicException(\sprintf('The provider class `%s` must exist in order to use with the "%s" OAuth provider.', $providerClass, $providerType));
             }
-            throw new \LogicException(sprintf('Run `composer require %s` in order to use the "%s" OAuth provider.', $packageName, $providerType));
+            throw new \LogicException(\sprintf('Run `composer require %s` in order to use the "%s" OAuth provider.', $packageName, $providerType));
         }
 
-        $providerServiceKey = sprintf('knpu.oauth2.provider.%s', $providerKey);
+        $providerServiceKey = \sprintf('knpu.oauth2.provider.%s', $providerKey);
 
         $providerDefinition = $container->register(
             $providerServiceKey,
@@ -279,7 +281,7 @@ class KnpUOAuth2ClientExtension extends Extension
             $collaborators,
         ]);
 
-        $clientServiceKey = sprintf('knpu.oauth2.client.%s', $providerKey);
+        $clientServiceKey = \sprintf('knpu.oauth2.client.%s', $providerKey);
         $clientDefinition = $container->register(
             $clientServiceKey,
             $clientClass
@@ -336,7 +338,7 @@ class KnpUOAuth2ClientExtension extends Extension
         return 'knpu_oauth2_client';
     }
 
-    private function buildConfigurationForType(NodeDefinition $node, $type)
+    private function buildConfigurationForType(NodeDefinition $node, $type): void
     {
         $optionsNode = $node->children();
         $optionsNode

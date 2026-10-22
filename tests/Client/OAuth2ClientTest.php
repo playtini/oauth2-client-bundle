@@ -246,7 +246,7 @@ class OAuth2ClientTest extends TestCase
 
     public function testFetchUser()
     {
-        $this->request->request->set('code', 'CODE_ABC');
+        $this->request->query->set('code', 'CODE_ABC');
 
         $expectedToken = new AccessToken(['access_token' => 'expected']);
         $this->provider->method('getAccessToken')

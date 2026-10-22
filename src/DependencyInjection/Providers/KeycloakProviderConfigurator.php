@@ -15,7 +15,7 @@ use Symfony\Component\Config\Definition\Builder\NodeBuilder;
 
 class KeycloakProviderConfigurator implements ProviderConfiguratorInterface
 {
-    public function buildConfiguration(NodeBuilder $node)
+    public function buildConfiguration(NodeBuilder $node): void
     {
         $node
             ->scalarNode('auth_server_url')
@@ -28,7 +28,7 @@ class KeycloakProviderConfigurator implements ProviderConfiguratorInterface
             ->end()
             ->scalarNode('encryption_algorithm')
                 ->defaultNull()
-                ->info('Optional: Encryption algorith, i.e. RS256')
+                ->info('Optional: Encryption algorithm, i.e. RS256')
             ->end()
             ->scalarNode('encryption_key_path')
                 ->defaultNull()

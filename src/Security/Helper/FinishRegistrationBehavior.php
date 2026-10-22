@@ -25,7 +25,7 @@ trait FinishRegistrationBehavior
      *
      * @throws \LogicException
      */
-    protected function saveUserInfoToSession(Request $request, FinishRegistrationException $e)
+    protected function saveUserInfoToSession(Request $request, FinishRegistrationException $e): void
     {
         // save the user information!
         if (!$request->hasSession() || !$request->getSession() instanceof SessionInterface) {
@@ -41,8 +41,6 @@ trait FinishRegistrationBehavior
 
     /**
      * Useful during registration to get your user information back out.
-     *
-     * @return mixed
      *
      * @throws \LogicException
      */

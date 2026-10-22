@@ -16,6 +16,7 @@ use League\OAuth2\Client\Provider\AbstractProvider;
 use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Token\AccessToken;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
@@ -41,7 +42,7 @@ class OAuth2Client implements OAuth2ClientInterface
     /**
      * Call this to avoid using and checking "state".
      */
-    public function setAsStateless()
+    public function setAsStateless(): void
     {
         $this->isStateless = true;
     }
@@ -91,13 +92,14 @@ class OAuth2Client implements OAuth2ClientInterface
     {
         if (!$this->isStateless()) {
             $expectedState = $this->getSession()->get(self::OAUTH2_SESSION_STATE_KEY);
-            $actualState = $this->getCurrentRequest()->get('state');
+            $actualState = $this->getRequestParameter('state');
+
             if (!$actualState || ($actualState !== $expectedState)) {
                 throw new InvalidStateException('Invalid state');
             }
         }
 
-        $code = $this->getCurrentRequest()->get('code');
+        $code = $this->getRequestParameter('code');
 
         if (!$code) {
             throw new MissingAuthorizationCodeException('No "code" parameter was found (usually this is a query parameter)!');
@@ -168,7 +170,7 @@ class OAuth2Client implements OAuth2ClientInterface
     }
 
     /**
-     * @return \Symfony\Component\HttpFoundation\Request
+     * @return Request
      */
     private function getCurrentRequest()
     {
@@ -184,12 +186,26 @@ class OAuth2Client implements OAuth2ClientInterface
     /**
      * @return SessionInterface
      */
-    private function getSession()
+    protected function getSession(bool $isPKCE = false)
     {
         if (!$this->getCurrentRequest()->hasSession()) {
-            throw new \LogicException('In order to use "state", you must have a session. Set the OAuth2Client to stateless to avoid state');
+            $errorMessage = $isPKCE ?
+                'You must have a session to utilize the PKCE OAuth2 Client flow. Ensure you are not utilizing PKCE in a stateless environment.' :
+                'In order to use "state", you must have a session. Set the OAuth2Client to stateless to avoid state';
+
+            throw new \LogicException($errorMessage);
         }
 
         return $this->getCurrentRequest()->getSession();
+    }
+
+    /**
+     * @return string|int|float|bool|null
+     */
+    private function getRequestParameter(string $key)
+    {
+        $request = $this->getCurrentRequest();
+
+        return $request->query->has($key) ? $request->query->get($key) : $request->request->get($key);
     }
 }

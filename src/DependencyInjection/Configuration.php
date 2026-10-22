@@ -18,9 +18,7 @@ class Configuration implements ConfigurationInterface
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder('knpu_oauth2_client');
-        $rootNode = method_exists($treeBuilder, 'getRootNode')
-            ? $treeBuilder->getRootNode()
-            : $treeBuilder->root('knpu_oauth2_client');
+        $rootNode = $treeBuilder->getRootNode();
 
         $rootNode
             ->children()
@@ -46,7 +44,7 @@ class Configuration implements ConfigurationInterface
                 ->end()
             ->end()
             ->validate()
-                ->ifTrue(fn ($v) => isset($v['http_client_options'], $v['http_client']) && !empty($v['http_client_options']))
+                ->ifTrue(static fn ($v) => isset($v['http_client_options'], $v['http_client']) && !empty($v['http_client_options']))
                 ->thenInvalid('You cannot use both "http_client_options" and "http_client" at the same time under "knpu_oauth2_client".')
             ->end()
         ;

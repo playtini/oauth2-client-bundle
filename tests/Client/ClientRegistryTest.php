@@ -12,11 +12,16 @@ namespace KnpU\OAuth2ClientBundle\Tests\Client;
 
 use KnpU\OAuth2ClientBundle\Client\ClientRegistry;
 use KnpU\OAuth2ClientBundle\Client\OAuth2ClientInterface;
+use KnpU\OAuth2ClientBundle\DependencyInjection\InvalidOAuth2ClientException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 class ClientRegistryTest extends TestCase
 {
+    /**
+     * @group legacy
+     * @legacy drop legacy group when no longer using guard authenticators
+     */
     public function testShouldKnowWhatServicesAreConfigured()
     {
         $mockServiceMap = [
@@ -47,7 +52,7 @@ class ClientRegistryTest extends TestCase
 
         $testClientRegistry = new ClientRegistry($mockContainer, $mockServiceMap);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidOAuth2ClientException::class);
 
         $testClientRegistry->getClient("unknownClient");
     }
@@ -65,7 +70,7 @@ class ClientRegistryTest extends TestCase
 
         $testClientRegistry = new ClientRegistry($mockContainer, $mockServiceMap);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidOAuth2ClientException::class);
 
         $testClientRegistry->getClient("invalid");
     }

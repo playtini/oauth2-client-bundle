@@ -5,14 +5,11 @@ on:
     push:
         branches: ['main']
     schedule:
-        - cron: '0 */12 * * *'
+        - cron: '0 0 * * 0'
 
 jobs:
     test:
         uses: SymfonyCasts/.github/.github/workflows/phpunit.yaml@main
-        with:
-            php-version-matrix: '["7.4", "8.0", "8.1", "8.2"]'
-            php-version-lowest: '7.4'
 
     composer-validate:
         uses: SymfonyCasts/.github/.github/workflows/composer-validate.yaml@main
@@ -22,5 +19,3 @@ jobs:
 
     sca:
         uses: SymfonyCasts/.github/.github/workflows/phpstan.yaml@main
-        with:
-            php: '8.0'

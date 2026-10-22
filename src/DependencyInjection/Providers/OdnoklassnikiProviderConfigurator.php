@@ -15,7 +15,7 @@ use Symfony\Component\Config\Definition\Builder\NodeBuilder;
 
 class OdnoklassnikiProviderConfigurator implements ProviderConfiguratorInterface
 {
-    public function buildConfiguration(NodeBuilder $node)
+    public function buildConfiguration(NodeBuilder $node): void
     {
         $node
             ->scalarNode('client_public')

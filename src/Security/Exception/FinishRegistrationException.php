@@ -10,7 +10,6 @@
 
 namespace KnpU\OAuth2ClientBundle\Security\Exception;
 
-use Exception;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
 /**
@@ -21,12 +20,11 @@ class FinishRegistrationException extends AuthenticationException
     private $userInformation;
 
     /**
-     * @param mixed      $userInfo Any info to be used to help registration
-     * @param string     $message
-     * @param int        $code
-     * @param \Exception $previous
+     * @param mixed  $userInfo Any info to be used to help registration
+     * @param string $message
+     * @param int    $code
      */
-    public function __construct($userInfo, $message = '', $code = 0, \Exception $previous = null)
+    public function __construct($userInfo, $message = '', $code = 0, ?\Exception $previous = null)
     {
         $this->userInformation = $userInfo;
 
